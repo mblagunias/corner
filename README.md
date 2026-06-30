@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vinyl Wall
 
-## Getting Started
+Connect your Spotify account and see your nine most-listened albums from last month displayed in a 3×3 vinyl-on-the-wall grid.
 
-First, run the development server:
+## Setup
+
+### 1. Create a Spotify app
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. Create an app and open its settings.
+3. Add this redirect URI (Spotify does **not** allow `localhost` — use the loopback IP):
+   ```
+   http://127.0.0.1:3000/api/auth/callback
+   ```
+4. Copy the **Client ID** and **Client Secret**.
+
+See [Spotify's redirect URI requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri) for details.
+
+### 2. Configure environment variables
+
+Create `.env.local` in the project root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Run the app
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Requires Node.js 20.9 or later.** Check with `node -v`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you use [nvm](https://github.com/nvm-sh/nvm), switch to Node 20 in this project:
 
-## Learn More
+```bash
+nvm install
+nvm use
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then start the dev server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **Connect Spotify**, and authorize the app.
 
-## Deploy on Vercel
+## How albums are ranked
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app pulls your Spotify listening history for the **previous calendar month** and ranks albums by play count. If there isn't enough recent history, it supplements with your top tracks from the last four weeks.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tech stack
+
+- Next.js (App Router)
+- Spotify Web API (OAuth + recently played / top tracks)
+- Tailwind CSS
