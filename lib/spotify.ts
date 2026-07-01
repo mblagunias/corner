@@ -28,8 +28,10 @@ import type { TopAlbum } from "./types";
 import { getRedirectUri as buildRedirectUri } from "./app-url";
 import {
   getLatestBrowsableMonth,
+  getMonthBoundsMs,
   getMonthRange,
   isLatestBrowsable,
+  isPlayedInMonth,
 } from "./month-range";
 
 export type { TopAlbum };
@@ -161,17 +163,19 @@ export function getPreviousMonthRange(referenceDate = new Date()) {
   return getMonthRange(year, month);
 }
 
-function isPlayedInRange(playedAt: Date, rangeStart: Date, rangeEnd: Date) {
-  return playedAt >= rangeStart && playedAt <= rangeEnd;
+function parsePlayedAtMs(playedAt: string) {
+  const playedAtMs = Date.parse(playedAt);
+  return Number.isFinite(playedAtMs) ? playedAtMs : null;
 }
 
 async function fetchRecentlyPlayedInRange(
   accessToken: string,
-  rangeStart: Date,
-  rangeEnd: Date,
+  year: number,
+  month: number,
 ) {
+  const { startMs, endExclusiveMs } = getMonthBoundsMs(year, month);
   const tracks: SpotifyTrack[] = [];
-  let cursor = rangeEnd.getTime() + 1;
+  let cursor = endExclusiveMs;
   const maxPages = 150;
 
   for (let page = 0; page < maxPages; page += 1) {
@@ -182,7 +186,7 @@ async function fetchRecentlyPlayedInRange(
 
     const data = await spotifyFetch<{
       items: SpotifyTrack[];
-      cursors: { after: string | null; before: string | null };
+      cursors: { after: string | null; before: string | null } | null;
     }>(accessToken, `/me/player/recently-played?${query.toString()}`);
 
     if (!data.items.length) {
@@ -196,15 +200,18 @@ async function fetchRecentlyPlayedInRange(
         continue;
       }
 
-      const playedAt = new Date(item.played_at);
-
-      if (playedAt < rangeStart) {
-        reachedBeforeRange = true;
-        break;
+      const playedAtMs = parsePlayedAtMs(item.played_at);
+      if (playedAtMs === null) {
+        continue;
       }
 
-      if (!isPlayedInRange(playedAt, rangeStart, rangeEnd)) {
+      if (playedAtMs >= endExclusiveMs) {
         continue;
+      }
+
+      if (playedAtMs < startMs) {
+        reachedBeforeRange = true;
+        break;
       }
 
       tracks.push(item);
@@ -214,20 +221,41 @@ async function fetchRecentlyPlayedInRange(
       break;
     }
 
+    const apiCursor = data.cursors?.before;
+    if (apiCursor) {
+      const nextCursor = Number(apiCursor);
+      if (
+        !Number.isFinite(nextCursor) ||
+        nextCursor >= cursor ||
+        nextCursor < startMs
+      ) {
+        break;
+      }
+      cursor = nextCursor;
+      continue;
+    }
+
     const lastPlayedAt = data.items.at(-1)?.played_at;
     if (!lastPlayedAt) {
       break;
     }
 
-    const lastTimestamp = new Date(lastPlayedAt).getTime();
-    if (lastTimestamp >= cursor) {
+    const lastPlayedMs = parsePlayedAtMs(lastPlayedAt);
+    if (lastPlayedMs === null || lastPlayedMs >= cursor) {
       break;
     }
 
-    cursor = lastTimestamp;
+    cursor = lastPlayedMs;
   }
 
-  return tracks;
+  return tracks.filter((item) => {
+    if (!item.played_at) {
+      return false;
+    }
+
+    const playedAtMs = parsePlayedAtMs(item.played_at);
+    return playedAtMs !== null && isPlayedInMonth(playedAtMs, year, month);
+  });
 }
 
 function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAlbum[] {
@@ -273,8 +301,12 @@ export async function getTopAlbumsForMonth(
   year: number,
   month: number,
 ) {
-  const { start, end, label } = getMonthRange(year, month);
-  const recentTracks = await fetchRecentlyPlayedInRange(accessToken, start, end);
+  const { label } = getMonthRange(year, month);
+  const recentTracks = await fetchRecentlyPlayedInRange(
+    accessToken,
+    year,
+    month,
+  );
 
   return {
     year,

@@ -3,13 +3,29 @@ export type MonthRef = {
   month: number;
 };
 
+export function getMonthBoundsMs(year: number, month: number) {
+  const startMs = Date.UTC(year, month - 1, 1, 0, 0, 0, 0);
+  const endExclusiveMs = Date.UTC(year, month, 1, 0, 0, 0, 0);
+
+  return { startMs, endExclusiveMs };
+}
+
+export function isPlayedInMonth(
+  playedAtMs: number,
+  year: number,
+  month: number,
+) {
+  const { startMs, endExclusiveMs } = getMonthBoundsMs(year, month);
+  return playedAtMs >= startMs && playedAtMs < endExclusiveMs;
+}
+
 export function getMonthRange(year: number, month: number) {
-  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+  const start = new Date(getMonthBoundsMs(year, month).startMs);
+  const endInclusive = new Date(getMonthBoundsMs(year, month).endExclusiveMs - 1);
 
   return {
     start,
-    end,
+    end: endInclusive,
     year,
     month,
     label: start.toLocaleDateString("en-US", {
@@ -21,14 +37,18 @@ export function getMonthRange(year: number, month: number) {
 }
 
 export function getLatestBrowsableMonth(referenceDate = new Date()): MonthRef {
-  const year = referenceDate.getUTCFullYear();
-  const month = referenceDate.getUTCMonth();
+  const startOfCurrentMonthMs = Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    1,
+  );
+  const previousMonth = new Date(startOfCurrentMonthMs);
+  previousMonth.setUTCMonth(previousMonth.getUTCMonth() - 1);
 
-  if (month === 0) {
-    return { year: year - 1, month: 12 };
-  }
-
-  return { year, month };
+  return {
+    year: previousMonth.getUTCFullYear(),
+    month: previousMonth.getUTCMonth() + 1,
+  };
 }
 
 export function shiftMonth(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getLatestBrowsableMonth, type MonthRef } from "@/lib/month-range";
+import { type MonthRef } from "@/lib/month-range";
 import type { TopAlbum } from "@/lib/types";
 import { AlbumShelf } from "./AlbumShelf";
 import { ListeningConsole } from "./ListeningConsole";
@@ -22,24 +22,24 @@ function chunkAlbums(albums: TopAlbum[]) {
 
 export function VinylWall() {
   const captureRef = useRef<HTMLDivElement>(null);
-  const defaultMonth = getLatestBrowsableMonth();
-  const [selectedMonth, setSelectedMonth] = useState<MonthRef>(defaultMonth);
+  const [selectedMonth, setSelectedMonth] = useState<MonthRef | null>(null);
   const [data, setData] = useState<AlbumsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAlbums = useCallback(async (month: MonthRef, signal: AbortSignal) => {
+  const loadAlbums = useCallback(async (month: MonthRef | null, signal: AbortSignal) => {
     setLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams({
-        year: month.year.toString(),
-        month: month.month.toString(),
-      });
-      const response = await fetch(`/api/albums?${params.toString()}`, {
-        signal,
-      });
+      const params = month
+        ? new URLSearchParams({
+            year: month.year.toString(),
+            month: month.month.toString(),
+          })
+        : null;
+      const url = params ? `/api/albums?${params.toString()}` : "/api/albums";
+      const response = await fetch(url, { signal });
 
       if (response.status === 401) {
         throw new Error("Your Spotify session expired. Disconnect and connect again.");
@@ -51,6 +51,7 @@ export function VinylWall() {
 
       const payload = (await response.json()) as AlbumsResponse;
       setData(payload);
+      setSelectedMonth({ year: payload.year, month: payload.month });
     } catch (loadError) {
       if (loadError instanceof DOMException && loadError.name === "AbortError") {
         return;
@@ -84,6 +85,10 @@ export function VinylWall() {
   const monthLabel = data?.monthLabel ?? "";
   const canGoForward = data?.canGoForward ?? false;
   const shelves = chunkAlbums(data?.albums ?? []);
+  const navigatorMonth = selectedMonth ?? {
+    year: data?.year ?? 0,
+    month: data?.month ?? 0,
+  };
 
   return (
     <section className="w-full">
@@ -93,8 +98,8 @@ export function VinylWall() {
       >
         <header className="mb-8 border-b border-[var(--border)] pb-6">
           <MonthNavigator
-            year={selectedMonth.year}
-            month={selectedMonth.month}
+            year={navigatorMonth.year}
+            month={navigatorMonth.month}
             monthLabel={monthLabel || "…"}
             canGoForward={canGoForward}
             disabled={loading}
