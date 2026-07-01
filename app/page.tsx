@@ -1,6 +1,7 @@
 import { ConnectSpotify } from "@/components/ConnectSpotify";
 import { LogoutButton } from "@/components/LogoutButton";
 import { VinylWall } from "@/components/VinylWall";
+import { getAppUrlFromHeaders } from "@/lib/app-url";
 import { hasSession } from "@/lib/session";
 
 type HomeProps = {
@@ -9,6 +10,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
+  const appUrl = await getAppUrlFromHeaders();
   const isConnected = await hasSession();
 
   return (
@@ -29,7 +31,7 @@ export default async function Home({ searchParams }: HomeProps) {
         {isConnected ? (
           <VinylWall />
         ) : (
-          <ConnectSpotify error={params.error ?? null} />
+          <ConnectSpotify error={params.error ?? null} appUrl={appUrl} />
         )}
       </div>
     </main>

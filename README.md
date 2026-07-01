@@ -8,17 +8,28 @@ Connect your Spotify account and see your nine most-listened albums from last mo
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 2. Create an app and open its settings.
-3. Add this redirect URI (Spotify does **not** allow `localhost` — use the loopback IP):
+3. Add **both** redirect URIs you will use:
+
+   **Local development** (Spotify does not allow `localhost` — use the loopback IP):
    ```
    http://127.0.0.1:3000/api/auth/callback
    ```
+
+   **Production on Vercel** (HTTPS required):
+   ```
+   https://YOUR_VERCEL_DOMAIN/api/auth/callback
+   ```
+
+   Example: `https://corner.vercel.app/api/auth/callback`
+
 4. Copy the **Client ID** and **Client Secret**.
+5. If the app is in Development Mode, add your Spotify account under **Users and Access**.
 
 See [Spotify's redirect URI requirements](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri) for details.
 
 ### 2. Configure environment variables
 
-Create `.env.local` in the project root:
+**Local** — create `.env.local` in the project root:
 
 ```bash
 SPOTIFY_CLIENT_ID=your_client_id
@@ -26,25 +37,39 @@ SPOTIFY_CLIENT_SECRET=your_client_secret
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-### 3. Run the app
+**Vercel** — in your project go to **Settings → Environment Variables** and add:
+
+| Variable | Production | Preview | Development |
+|----------|------------|---------|-------------|
+| `SPOTIFY_CLIENT_ID` | your client ID | same | same |
+| `SPOTIFY_CLIENT_SECRET` | your client secret | same | same |
+| `NEXT_PUBLIC_APP_URL` | `https://YOUR_PRODUCTION_DOMAIN` | optional | optional |
+
+`NEXT_PUBLIC_APP_URL` is optional on Vercel — the app derives your HTTPS URL from the incoming request. Set it if you use a custom domain and want a fixed canonical URL.
+
+After adding variables, **redeploy** the production deployment.
+
+### 3. Run locally
 
 **Requires Node.js 20.9 or later.** Check with `node -v`.
-
-If you use [nvm](https://github.com/nvm-sh/nvm), switch to Node 20 in this project:
 
 ```bash
 nvm install
 nvm use
-```
-
-Then start the dev server:
-
-```bash
 npm install
 npm run dev
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **Connect Spotify**, and authorize the app.
+
+### 4. Deploy to Vercel
+
+1. Import the repo at [vercel.com/new](https://vercel.com/new).
+2. Add the environment variables above.
+3. Add your production callback URL to the Spotify app settings (must match exactly).
+4. Deploy, then open your production URL and connect Spotify.
+
+**Preview deployments:** each preview URL is different. Spotify OAuth on previews only works if you add that preview URL as a redirect URI in the Spotify dashboard. For easiest testing, use the production deployment.
 
 ## How albums are ranked
 

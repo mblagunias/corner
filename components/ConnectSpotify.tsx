@@ -1,8 +1,6 @@
 "use client";
 
-type ConnectSpotifyProps = {
-  error?: string | null;
-};
+import { useState } from "react";
 
 const ERROR_MESSAGES: Record<string, string> = {
   access_denied: "Spotify connection was cancelled.",
@@ -10,10 +8,34 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Login could not be verified. Use http://127.0.0.1:3000 and try connecting again.",
   auth_failed:
     "Could not connect to Spotify. Check your Client ID, Client Secret, and redirect URI in the Spotify dashboard.",
+  config_error:
+    "Spotify is not configured. Add your credentials to .env.local and restart the dev server.",
 };
 
-export function ConnectSpotify({ error }: ConnectSpotifyProps) {
+type ConnectSpotifyProps = {
+  error?: string | null;
+  appUrl: string;
+};
+
+function isLocalAppUrl(appUrl: string) {
+  try {
+    const { hostname } = new URL(appUrl);
+    return hostname === "127.0.0.1" || hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+export function ConnectSpotify({ error, appUrl }: ConnectSpotifyProps) {
+  const [connecting, setConnecting] = useState(false);
   const message = error ? ERROR_MESSAGES[error] ?? "Something went wrong." : null;
+  const loginUrl = `${appUrl}/api/auth/login`;
+  const isLocal = isLocalAppUrl(appUrl);
+
+  function handleConnect() {
+    setConnecting(true);
+    window.location.assign(loginUrl);
+  }
 
   return (
     <div className="mx-auto flex max-w-lg flex-col items-center text-center">
@@ -37,19 +59,31 @@ export function ConnectSpotify({ error }: ConnectSpotifyProps) {
         </p>
       ) : null}
 
-      <a
-        href="/api/auth/login"
-        className="mt-8 inline-flex items-center gap-3 rounded-full bg-[#1db954] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[#1ed760] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1db954]"
+      <button
+        type="button"
+        onClick={handleConnect}
+        disabled={connecting}
+        className="mt-8 inline-flex items-center gap-3 rounded-full bg-[#1db954] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[#1ed760] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1db954] disabled:cursor-wait disabled:opacity-80"
       >
-        Connect Spotify
-      </a>
+        {connecting ? "Opening Spotify…" : "Connect Spotify"}
+      </button>
 
       <p className="mt-6 max-w-sm text-xs leading-relaxed text-[#8f7354]">
-        Use{" "}
-        <a href="http://127.0.0.1:3000" className="underline hover:text-[#c9b08a]">
-          http://127.0.0.1:3000
-        </a>{" "}
-        — Spotify requires a loopback IP, not <code className="text-[#a88d67]">localhost</code>.
+        {isLocal ? (
+          <>
+            Open{" "}
+            <a href={appUrl} className="underline hover:text-[#c9b08a]">
+              {appUrl}
+            </a>{" "}
+            in Chrome or Safari if the Spotify login page does not appear.
+            Cursor&apos;s built-in browser often blocks OAuth redirects.
+          </>
+        ) : (
+          <>
+            Spotify login opens in this window. If it fails, confirm your Vercel
+            URL is added as a redirect URI in the Spotify Developer Dashboard.
+          </>
+        )}
       </p>
     </div>
   );

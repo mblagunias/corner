@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAppUrlFromRequest } from "@/lib/app-url";
 import { TOKEN_COOKIE, tokenCookieOptions } from "@/lib/cookies";
 import { verifyOAuthState } from "@/lib/oauth-state";
 import { exchangeCodeForTokens } from "@/lib/spotify";
 
 export async function GET(request: NextRequest) {
+  const appUrl = getAppUrlFromRequest(request);
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -11,19 +13,19 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      new URL("/?error=access_denied", request.url),
+      new URL("/?error=access_denied", appUrl),
     );
   }
 
   if (!code || !verifyOAuthState(state)) {
     return NextResponse.redirect(
-      new URL("/?error=invalid_state", request.url),
+      new URL("/?error=invalid_state", appUrl),
     );
   }
 
   try {
-    const tokens = await exchangeCodeForTokens(code);
-    const response = NextResponse.redirect(new URL("/", request.url));
+    const tokens = await exchangeCodeForTokens(code, appUrl);
+    const response = NextResponse.redirect(new URL("/", appUrl));
 
     response.cookies.set(
       TOKEN_COOKIE,
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch {
     return NextResponse.redirect(
-      new URL("/?error=auth_failed", request.url),
+      new URL("/?error=auth_failed", appUrl),
     );
   }
 }

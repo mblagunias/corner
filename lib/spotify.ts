@@ -28,6 +28,7 @@ export type SpotifyTrack = {
 };
 
 import type { TopAlbum } from "./types";
+import { getRedirectUri as buildRedirectUri } from "./app-url";
 
 export type { TopAlbum };
 
@@ -42,17 +43,26 @@ function getCredentials() {
   return { clientId, clientSecret };
 }
 
-export function getRedirectUri() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000";
-  return `${baseUrl}/api/auth/callback`;
+export function getRedirectUri(appUrl?: string) {
+  if (appUrl) {
+    return buildRedirectUri(appUrl);
+  }
+
+  return buildRedirectUri(
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://127.0.0.1:3000"),
+  );
 }
 
-export function getLoginUrl(state: string) {
+export function getLoginUrl(state: string, appUrl?: string) {
   const { clientId } = getCredentials();
+  const redirectUri = getRedirectUri(appUrl);
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: "code",
-    redirect_uri: getRedirectUri(),
+    redirect_uri: redirectUri,
     scope: SPOTIFY_SCOPES,
     state,
     show_dialog: "true",
@@ -61,12 +71,15 @@ export function getLoginUrl(state: string) {
   return `${SPOTIFY_ACCOUNTS_URL}/authorize?${params.toString()}`;
 }
 
-export async function exchangeCodeForTokens(code: string): Promise<SpotifyTokens> {
+export async function exchangeCodeForTokens(
+  code: string,
+  appUrl?: string,
+): Promise<SpotifyTokens> {
   const { clientId, clientSecret } = getCredentials();
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
-    redirect_uri: getRedirectUri(),
+    redirect_uri: getRedirectUri(appUrl),
   });
 
   const response = await fetch(`${SPOTIFY_ACCOUNTS_URL}/api/token`, {
