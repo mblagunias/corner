@@ -1,98 +1,89 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getLatestBrowsableMonth, type MonthRef } from "@/lib/month-range";
 import type { TopAlbum } from "@/lib/types";
 import { AlbumShelf } from "./AlbumShelf";
 import { ListeningConsole } from "./ListeningConsole";
+import { MonthNavigator } from "./MonthNavigator";
 import { ShareWallActions } from "./ShareWallActions";
 
 type AlbumsResponse = {
+  year: number;
+  month: number;
   monthLabel: string;
+  canGoForward: boolean;
   albums: TopAlbum[];
 };
 
 function chunkAlbums(albums: TopAlbum[]) {
-  return [
-    albums.slice(0, 3),
-    albums.slice(3, 6),
-    albums.slice(6, 9),
-  ];
+  return [albums.slice(0, 3), albums.slice(3, 6), albums.slice(6, 9)];
 }
 
 export function VinylWall() {
   const captureRef = useRef<HTMLDivElement>(null);
+  const defaultMonth = getLatestBrowsableMonth();
+  const [selectedMonth, setSelectedMonth] = useState<MonthRef>(defaultMonth);
   const [data, setData] = useState<AlbumsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadAlbums = useCallback(async (month: MonthRef, signal: AbortSignal) => {
+    setLoading(true);
+    setError(null);
 
-    async function loadAlbums() {
-      try {
-        const response = await fetch("/api/albums");
+    try {
+      const params = new URLSearchParams({
+        year: month.year.toString(),
+        month: month.month.toString(),
+      });
+      const response = await fetch(`/api/albums?${params.toString()}`, {
+        signal,
+      });
 
-        if (response.status === 401) {
-          throw new Error("Your Spotify session expired. Disconnect and connect again.");
-        }
+      if (response.status === 401) {
+        throw new Error("Your Spotify session expired. Disconnect and connect again.");
+      }
 
-        if (!response.ok) {
-          throw new Error("Could not load your albums");
-        }
+      if (!response.ok) {
+        throw new Error("Could not load your albums");
+      }
 
-        const payload = (await response.json()) as AlbumsResponse;
+      const payload = (await response.json()) as AlbumsResponse;
+      setData(payload);
+    } catch (loadError) {
+      if (loadError instanceof DOMException && loadError.name === "AbortError") {
+        return;
+      }
 
-        if (!cancelled) {
-          setData(payload);
-        }
-      } catch (loadError) {
-        if (!cancelled) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Something went wrong",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Something went wrong",
+      );
+    } finally {
+      if (!signal.aborted) {
+        setLoading(false);
       }
     }
-
-    loadAlbums();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[320px] items-center justify-center">
-        <div className="loading-indicator" aria-label="Loading albums" />
-      </div>
-    );
+  useEffect(() => {
+    const controller = new AbortController();
+    loadAlbums(selectedMonth, controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadAlbums, selectedMonth]);
+
+  function handleMonthChange(next: MonthRef) {
+    setSelectedMonth(next);
   }
 
-  if (error) {
-    return (
-      <p className="border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
-        {error}
-      </p>
-    );
-  }
-
-  if (!data?.albums.length) {
-    return (
-      <p className="border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
-        No listening history found for {data?.monthLabel ?? "last month"}. Play
-        some albums on Spotify and check back.
-      </p>
-    );
-  }
-
-  const shelves = chunkAlbums(data.albums);
+  const monthLabel = data?.monthLabel ?? "";
+  const canGoForward = data?.canGoForward ?? false;
+  const shelves = chunkAlbums(data?.albums ?? []);
 
   return (
     <section className="w-full">
@@ -101,24 +92,43 @@ export function VinylWall() {
         className="share-export wall-scene px-5 py-8 sm:px-10 sm:py-10"
       >
         <header className="mb-8 border-b border-[var(--border)] pb-6">
-          <p className="text-[0.625rem] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-            Top albums
-          </p>
-          <h2 className="mt-1 text-lg font-medium tracking-tight text-[var(--text)] sm:text-xl">
-            {data.monthLabel}
-          </h2>
+          <MonthNavigator
+            year={selectedMonth.year}
+            month={selectedMonth.month}
+            monthLabel={monthLabel || "…"}
+            canGoForward={canGoForward}
+            disabled={loading}
+            onChange={handleMonthChange}
+          />
         </header>
 
-        <div className="flex flex-col gap-8 sm:gap-10">
-          {shelves.map((row, index) => (
-            <AlbumShelf key={`shelf-${index}`} albums={row} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex min-h-[320px] items-center justify-center">
+            <div className="loading-indicator" aria-label="Loading albums" />
+          </div>
+        ) : error ? (
+          <p className="border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+            {error}
+          </p>
+        ) : !data?.albums.length ? (
+          <p className="border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
+            No listening history found for {data?.monthLabel ?? "this month"}.
+            Try another month, or play more albums on Spotify.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-8 sm:gap-10">
+            {shelves.map((row, index) => (
+              <AlbumShelf key={`shelf-${index}`} albums={row} />
+            ))}
+          </div>
+        )}
 
-        <ListeningConsole />
+        {!loading && !error ? <ListeningConsole /> : null}
       </div>
 
-      <ShareWallActions monthLabel={data.monthLabel} captureRef={captureRef} />
+      {!loading && !error && data?.albums.length ? (
+        <ShareWallActions monthLabel={data.monthLabel} captureRef={captureRef} />
+      ) : null}
     </section>
   );
 }

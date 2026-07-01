@@ -73,7 +73,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **C
 
 ## How albums are ranked
 
-The app pulls your Spotify listening history for the **previous calendar month** (UTC, from the 1st through the last day) and ranks albums by how many times you played tracks from each album during that window.
+The app pulls your Spotify listening history for a **calendar month** (UTC, from the 1st through the last day) and ranks albums by how many times you played tracks from each album. Use the **‹ ›** controls to browse previous months.
 
 ## Tech stack
 

@@ -26,6 +26,11 @@ export type SpotifyTrack = {
 
 import type { TopAlbum } from "./types";
 import { getRedirectUri as buildRedirectUri } from "./app-url";
+import {
+  getLatestBrowsableMonth,
+  getMonthRange,
+  isLatestBrowsable,
+} from "./month-range";
 
 export type { TopAlbum };
 
@@ -152,21 +157,8 @@ async function spotifyFetch<T>(accessToken: string, path: string): Promise<T> {
 }
 
 export function getPreviousMonthRange(referenceDate = new Date()) {
-  const year = referenceDate.getUTCFullYear();
-  const month = referenceDate.getUTCMonth();
-
-  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-
-  return {
-    start,
-    end,
-    label: start.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }),
-  };
+  const { year, month } = getLatestBrowsableMonth(referenceDate);
+  return getMonthRange(year, month);
 }
 
 function isPlayedInRange(playedAt: Date, rangeStart: Date, rangeEnd: Date) {
@@ -179,13 +171,13 @@ async function fetchRecentlyPlayedInRange(
   rangeEnd: Date,
 ) {
   const tracks: SpotifyTrack[] = [];
-  let cursor = rangeStart.getTime() - 1;
-  const maxPages = 50;
+  let cursor = rangeEnd.getTime() + 1;
+  const maxPages = 150;
 
   for (let page = 0; page < maxPages; page += 1) {
     const query = new URLSearchParams({
       limit: "50",
-      after: cursor.toString(),
+      before: cursor.toString(),
     });
 
     const data = await spotifyFetch<{
@@ -228,7 +220,7 @@ async function fetchRecentlyPlayedInRange(
     }
 
     const lastTimestamp = new Date(lastPlayedAt).getTime();
-    if (lastTimestamp <= cursor) {
+    if (lastTimestamp >= cursor) {
       break;
     }
 
@@ -276,14 +268,26 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
     .slice(0, 9);
 }
 
-export async function getTopAlbumsFromPreviousMonth(accessToken: string) {
-  const { start, end, label } = getPreviousMonthRange();
+export async function getTopAlbumsForMonth(
+  accessToken: string,
+  year: number,
+  month: number,
+) {
+  const { start, end, label } = getMonthRange(year, month);
   const recentTracks = await fetchRecentlyPlayedInRange(accessToken, start, end);
 
   return {
+    year,
+    month,
     monthLabel: label,
+    canGoForward: !isLatestBrowsable(year, month),
     albums: aggregateAlbums(recentTracks),
   };
+}
+
+export async function getTopAlbumsFromPreviousMonth(accessToken: string) {
+  const { year, month } = getLatestBrowsableMonth();
+  return getTopAlbumsForMonth(accessToken, year, month);
 }
 
 export async function getSpotifyProfile(accessToken: string) {
