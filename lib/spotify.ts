@@ -176,7 +176,7 @@ async function fetchRecentlyPlayedInRange(
   const { startMs, endExclusiveMs } = getMonthBoundsMs(year, month);
   const tracks: SpotifyTrack[] = [];
   let cursor = endExclusiveMs;
-  const maxPages = 150;
+  const maxPages = 40;
 
   for (let page = 0; page < maxPages; page += 1) {
     const query = new URLSearchParams({
@@ -221,27 +221,13 @@ async function fetchRecentlyPlayedInRange(
       break;
     }
 
-    const apiCursor = data.cursors?.before;
-    if (apiCursor) {
-      const nextCursor = Number(apiCursor);
-      if (
-        !Number.isFinite(nextCursor) ||
-        nextCursor >= cursor ||
-        nextCursor < startMs
-      ) {
-        break;
-      }
-      cursor = nextCursor;
-      continue;
-    }
-
     const lastPlayedAt = data.items.at(-1)?.played_at;
     if (!lastPlayedAt) {
       break;
     }
 
     const lastPlayedMs = parsePlayedAtMs(lastPlayedAt);
-    if (lastPlayedMs === null || lastPlayedMs >= cursor) {
+    if (lastPlayedMs === null || lastPlayedMs < startMs || lastPlayedMs >= cursor) {
       break;
     }
 
@@ -272,8 +258,12 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
   >();
 
   for (const { track } of tracks) {
-    const album = track.album;
-    const imageUrl = album.images[0]?.url ?? "";
+    const album = track?.album;
+    if (!album?.id) {
+      continue;
+    }
+
+    const imageUrl = album.images?.[0]?.url ?? "";
     const existing = albumMap.get(album.id);
 
     if (existing) {
@@ -283,10 +273,10 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
 
     albumMap.set(album.id, {
       id: album.id,
-      name: album.name,
-      artist: album.artists.map((artist) => artist.name).join(", "),
+      name: album.name ?? "Unknown album",
+      artist: album.artists?.map((artist) => artist.name).join(", ") ?? "Unknown artist",
       imageUrl,
-      spotifyUrl: album.external_urls.spotify,
+      spotifyUrl: album.external_urls?.spotify ?? "",
       playCount: 1,
     });
   }
