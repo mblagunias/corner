@@ -43,9 +43,9 @@ NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 |----------|------------|---------|-------------|
 | `SPOTIFY_CLIENT_ID` | your client ID | same | same |
 | `SPOTIFY_CLIENT_SECRET` | your client secret | same | same |
-| `NEXT_PUBLIC_APP_URL` | `https://YOUR_PRODUCTION_DOMAIN` | optional | optional |
+| `NEXT_PUBLIC_APP_URL` | only if using a custom domain | optional | optional |
 
-`NEXT_PUBLIC_APP_URL` is optional on Vercel — the app derives your HTTPS URL from the incoming request. Set it if you use a custom domain and want a fixed canonical URL.
+Do **not** set `NEXT_PUBLIC_APP_URL` to `http://127.0.0.1:3000` in Vercel production. The app derives your live HTTPS URL from each request automatically.
 
 After adding variables, **redeploy** the production deployment.
 

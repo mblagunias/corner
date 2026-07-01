@@ -7,7 +7,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_state:
     "Login could not be verified. Use http://127.0.0.1:3000 and try connecting again.",
   auth_failed:
-    "Could not connect to Spotify. Check your Client ID, Client Secret, and redirect URI in the Spotify dashboard.",
+    "Could not connect to Spotify. On Vercel, confirm SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and that your live URL is added as a redirect URI in the Spotify dashboard.",
   config_error:
     "Spotify is not configured. Add your credentials to .env.local and restart the dev server.",
 };
