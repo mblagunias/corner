@@ -9,7 +9,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   auth_failed:
     "Could not connect to Spotify. On Vercel, confirm SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and that your live URL is added as a redirect URI in the Spotify dashboard.",
   config_error:
-    "Spotify is not configured. Add your credentials to .env.local and restart the dev server.",
+    "Spotify is not configured on the server. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in Vercel, then redeploy.",
 };
 
 type ConnectSpotifyProps = {

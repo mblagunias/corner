@@ -20,7 +20,7 @@ Connect your Spotify account and see your nine most-listened albums from last mo
    https://YOUR_VERCEL_DOMAIN/api/auth/callback
    ```
 
-   Example: `https://corner.vercel.app/api/auth/callback`
+   Example: `https://corner-mu.vercel.app/api/auth/callback`
 
 4. Copy the **Client ID** and **Client Secret**.
 5. If the app is in Development Mode, add your Spotify account under **Users and Access**.
@@ -45,7 +45,7 @@ NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 | `SPOTIFY_CLIENT_SECRET` | your client secret | same | same |
 | `NEXT_PUBLIC_APP_URL` | only if using a custom domain | optional | optional |
 
-Do **not** set `NEXT_PUBLIC_APP_URL` to `http://127.0.0.1:3000` in Vercel production. The app derives your live HTTPS URL from each request automatically.
+Do **not** set `NEXT_PUBLIC_APP_URL` to `http://127.0.0.1:3000` in Vercel production — remove it or set it to `https://corner-mu.vercel.app` instead.
 
 After adding variables, **redeploy** the production deployment.
 
