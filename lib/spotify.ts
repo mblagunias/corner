@@ -32,6 +32,12 @@ import { getRedirectUri as buildRedirectUri } from "./app-url";
 
 export type { TopAlbum };
 
+export function hasSpotifyConfig() {
+  return Boolean(
+    process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET,
+  );
+}
+
 function getCredentials() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;

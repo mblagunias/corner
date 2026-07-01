@@ -91,6 +91,11 @@ export function getRedirectUri(appUrl: string) {
   return `${normalizeAppUrl(appUrl)}/api/auth/callback`;
 }
 
+export function redirectToAppPath(request: { nextUrl: URL; headers: Headers }, path: string) {
+  const appUrl = getAppUrlFromRequest(request);
+  return `${normalizeAppUrl(appUrl)}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export function isLocalAppUrl(appUrl: string) {
   try {
     const { hostname } = new URL(appUrl);

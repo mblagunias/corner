@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUrlFromRequest } from "@/lib/app-url";
+import { getAppUrlFromRequest, redirectToAppPath } from "@/lib/app-url";
 import { createOAuthState } from "@/lib/oauth-state";
-import { getLoginUrl } from "@/lib/spotify";
+import { getLoginUrl, hasSpotifyConfig } from "@/lib/spotify";
+
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  if (!hasSpotifyConfig()) {
+    return NextResponse.redirect(
+      redirectToAppPath(request, "/?error=config_error"),
+    );
+  }
+
   try {
     const appUrl = getAppUrlFromRequest(request);
     const state = createOAuthState();
@@ -14,7 +22,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch {
     return NextResponse.redirect(
-      new URL("/?error=config_error", getAppUrlFromRequest(request)),
+      redirectToAppPath(request, "/?error=config_error"),
     );
   }
 }

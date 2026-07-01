@@ -19,9 +19,9 @@ export function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="rounded-full border border-[#6b5640]/70 px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#c9b08a] transition hover:border-[#c9b08a] hover:text-[#f5e6d0] disabled:opacity-60"
+      className="border border-[var(--border-strong)] px-4 py-1.5 text-[0.625rem] uppercase tracking-[0.14em] text-[var(--text-muted)] transition hover:border-[var(--text)] hover:text-[var(--text)] disabled:opacity-50"
     >
-      {loading ? "Disconnecting..." : "Disconnect"}
+      {loading ? "Disconnecting…" : "Disconnect"}
     </button>
   );
 }

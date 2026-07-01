@@ -2,13 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TopAlbum } from "@/lib/types";
+import { AlbumShelf } from "./AlbumShelf";
+import { ListeningConsole } from "./ListeningConsole";
 import { ShareWallActions } from "./ShareWallActions";
-import { VinylRecord } from "./VinylRecord";
 
 type AlbumsResponse = {
   monthLabel: string;
   albums: TopAlbum[];
 };
+
+function chunkAlbums(albums: TopAlbum[]) {
+  return [
+    albums.slice(0, 3),
+    albums.slice(3, 6),
+    albums.slice(6, 9),
+  ];
+}
 
 export function VinylWall() {
   const captureRef = useRef<HTMLDivElement>(null);
@@ -60,15 +69,15 @@ export function VinylWall() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center">
-        <div className="loading-vinyl" aria-label="Loading albums" />
+      <div className="flex min-h-[320px] items-center justify-center">
+        <div className="loading-indicator" aria-label="Loading albums" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <p className="rounded-xl border border-red-400/30 bg-red-950/30 px-4 py-3 text-center text-red-100">
+      <p className="border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
         {error}
       </p>
     );
@@ -76,46 +85,37 @@ export function VinylWall() {
 
   if (!data?.albums.length) {
     return (
-      <p className="rounded-xl border border-[#5c4a35]/50 bg-[#2a2118]/60 px-4 py-6 text-center text-[#d9c5a4]">
+      <p className="border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
         No listening history found for {data?.monthLabel ?? "last month"}. Play
         some albums on Spotify and check back.
       </p>
     );
   }
 
-  const placeholders = Array.from({ length: Math.max(0, 9 - data.albums.length) });
+  const shelves = chunkAlbums(data.albums);
 
   return (
     <section className="w-full">
-      <div ref={captureRef} className="share-export vinyl-room rounded-2xl px-6 py-10 sm:px-10">
-        <header className="mb-10 text-center">
-          <p className="text-xs uppercase tracking-[0.35em] text-[#a88d67]">
-            Your wall
+      <div
+        ref={captureRef}
+        className="share-export wall-scene px-5 py-8 sm:px-10 sm:py-10"
+      >
+        <header className="mb-8 border-b border-[var(--border)] pb-6">
+          <p className="text-[0.625rem] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            Top albums
           </p>
-          <h2 className="mt-2 font-serif text-3xl text-[#f5e6d0] sm:text-4xl">
-            Top albums · {data.monthLabel}
+          <h2 className="mt-1 text-lg font-medium tracking-tight text-[var(--text)] sm:text-xl">
+            {data.monthLabel}
           </h2>
-          <p className="mt-3 text-sm text-[#c9b08a]">
-            Ranked by how often you played them last month
-          </p>
         </header>
 
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-          {data.albums.map((album, index) => (
-            <VinylRecord key={album.id} album={album} index={index} />
-          ))}
-          {placeholders.map((_, index) => (
-            <div
-              key={`placeholder-${index}`}
-              className="aspect-square w-full max-w-[220px] justify-self-center rounded-sm border border-dashed border-[#5c4a35]/40 bg-[#1f1812]/40"
-              aria-hidden="true"
-            />
+        <div className="flex flex-col gap-8 sm:gap-10">
+          {shelves.map((row, index) => (
+            <AlbumShelf key={`shelf-${index}`} albums={row} />
           ))}
         </div>
 
-        <p className="mt-10 text-center text-xs uppercase tracking-[0.35em] text-[#8f7354]">
-          Vinyl Wall · Corner
-        </p>
+        <ListeningConsole />
       </div>
 
       <ShareWallActions monthLabel={data.monthLabel} captureRef={captureRef} />

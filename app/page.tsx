@@ -14,16 +14,16 @@ export default async function Home({ searchParams }: HomeProps) {
   const isConnected = await hasSession();
 
   return (
-    <main className="vinyl-room min-h-screen px-4 py-10 sm:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col">
-        <header className="mb-12 flex flex-col items-center justify-between gap-4 sm:flex-row">
+    <main className="min-h-screen px-5 py-10 sm:px-8 sm:py-14">
+      <div className="mx-auto flex w-full max-w-2xl flex-col">
+        <header className="mb-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-[#a88d67]">
+            <h1 className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--text)]">
               Corner
-            </p>
-            <h1 className="font-serif text-2xl text-[#f5e6d0] sm:text-3xl">
-              Vinyl Wall
             </h1>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Top albums · last month
+            </p>
           </div>
           {isConnected ? <LogoutButton /> : null}
         </header>

@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUrlFromRequest } from "@/lib/app-url";
+import { getAppUrlFromRequest, redirectToAppPath } from "@/lib/app-url";
 import { TOKEN_COOKIE, tokenCookieOptions } from "@/lib/cookies";
 import { verifyOAuthState } from "@/lib/oauth-state";
-import { exchangeCodeForTokens } from "@/lib/spotify";
+import { exchangeCodeForTokens, hasSpotifyConfig } from "@/lib/spotify";
+
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
+  if (!hasSpotifyConfig()) {
+    return NextResponse.redirect(
+      redirectToAppPath(request, "/?error=config_error"),
+    );
+  }
+
   const appUrl = getAppUrlFromRequest(request);
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
