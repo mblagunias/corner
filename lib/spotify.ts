@@ -1,10 +1,7 @@
 const SPOTIFY_ACCOUNTS_URL = "https://accounts.spotify.com";
 const SPOTIFY_API_URL = "https://api.spotify.com/v1";
 
-export const SPOTIFY_SCOPES = [
-  "user-read-recently-played",
-  "user-top-read",
-].join(" ");
+export const SPOTIFY_SCOPES = ["user-read-recently-played"].join(" ");
 
 export type SpotifyTokens = {
   access_token: string;
@@ -154,16 +151,26 @@ async function spotifyFetch<T>(accessToken: string, path: string): Promise<T> {
   return response.json();
 }
 
-function getPreviousMonthRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+export function getPreviousMonthRange(referenceDate = new Date()) {
+  const year = referenceDate.getUTCFullYear();
+  const month = referenceDate.getUTCMonth();
+
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
   return {
     start,
     end,
-    label: start.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    label: start.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
   };
+}
+
+function isPlayedInRange(playedAt: Date, rangeStart: Date, rangeEnd: Date) {
+  return playedAt >= rangeStart && playedAt <= rangeEnd;
 }
 
 async function fetchRecentlyPlayedInRange(
@@ -172,8 +179,8 @@ async function fetchRecentlyPlayedInRange(
   rangeEnd: Date,
 ) {
   const tracks: SpotifyTrack[] = [];
-  let cursor = rangeStart.getTime();
-  const maxPages = 20;
+  let cursor = rangeStart.getTime() - 1;
+  const maxPages = 50;
 
   for (let page = 0; page < maxPages; page += 1) {
     const query = new URLSearchParams({
@@ -190,6 +197,8 @@ async function fetchRecentlyPlayedInRange(
       break;
     }
 
+    let reachedBeforeRange = false;
+
     for (const item of data.items) {
       if (!item.played_at) {
         continue;
@@ -197,15 +206,20 @@ async function fetchRecentlyPlayedInRange(
 
       const playedAt = new Date(item.played_at);
 
-      if (playedAt > rangeEnd) {
+      if (playedAt < rangeStart) {
+        reachedBeforeRange = true;
+        break;
+      }
+
+      if (!isPlayedInRange(playedAt, rangeStart, rangeEnd)) {
         continue;
       }
 
-      if (playedAt < rangeStart) {
-        return tracks;
-      }
-
       tracks.push(item);
+    }
+
+    if (reachedBeforeRange) {
+      break;
     }
 
     const lastPlayedAt = data.items.at(-1)?.played_at;
@@ -222,27 +236,6 @@ async function fetchRecentlyPlayedInRange(
   }
 
   return tracks;
-}
-
-async function fetchTopTracks(accessToken: string) {
-  const params = new URLSearchParams({
-    time_range: "short_term",
-    limit: "50",
-  });
-
-  const data = await spotifyFetch<{
-    items: Array<{
-      album: SpotifyTrack["track"]["album"];
-    }>;
-  }>(accessToken, `/me/top/tracks?${params.toString()}`);
-
-  return data.items.map((item, index) => ({
-    track: {
-      id: `top-${index}`,
-      name: "",
-      album: item.album,
-    },
-  }));
 }
 
 function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAlbum[] {
@@ -287,16 +280,9 @@ export async function getTopAlbumsFromPreviousMonth(accessToken: string) {
   const { start, end, label } = getPreviousMonthRange();
   const recentTracks = await fetchRecentlyPlayedInRange(accessToken, start, end);
 
-  let sourceTracks = recentTracks;
-
-  if (recentTracks.length < 9) {
-    const topTracks = await fetchTopTracks(accessToken);
-    sourceTracks = [...recentTracks, ...topTracks];
-  }
-
   return {
     monthLabel: label,
-    albums: aggregateAlbums(sourceTracks),
+    albums: aggregateAlbums(recentTracks),
   };
 }
 

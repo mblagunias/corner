@@ -73,10 +73,10 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **C
 
 ## How albums are ranked
 
-The app pulls your Spotify listening history for the **previous calendar month** and ranks albums by play count. If there isn't enough recent history, it supplements with your top tracks from the last four weeks.
+The app pulls your Spotify listening history for the **previous calendar month** (UTC, from the 1st through the last day) and ranks albums by how many times you played tracks from each album during that window.
 
 ## Tech stack
 
 - Next.js (App Router)
-- Spotify Web API (OAuth + recently played / top tracks)
+- Spotify Web API (OAuth + recently played)
 - Tailwind CSS
