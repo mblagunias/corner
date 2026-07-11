@@ -43,8 +43,9 @@ export function ConnectSpotify({ error, appUrl }: ConnectSpotifyProps) {
         Connect Spotify
       </h2>
       <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
-        Your nine most-played albums from last month, arranged on three shelves
-        above a listening console.
+        Your nine top albums from Spotify, arranged on three shelves above a
+        listening console. Switch between the last 4 weeks, 6 months, and all
+        time.
       </p>
 
       {message ? (

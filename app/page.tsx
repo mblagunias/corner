@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: HomeProps) {
               Corner
             </h1>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Top albums · last month
+              Top albums · last 4 weeks
             </p>
           </div>
           {isConnected ? <LogoutButton /> : null}

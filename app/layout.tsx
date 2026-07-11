@@ -10,7 +10,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Corner",
-  description: "Your top nine Spotify albums from last month.",
+  description: "Your top nine Spotify albums from the last 4 weeks, 6 months, or all time.",
 };
 
 export default function RootLayout({

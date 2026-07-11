@@ -1,7 +1,7 @@
 const SPOTIFY_ACCOUNTS_URL = "https://accounts.spotify.com";
 const SPOTIFY_API_URL = "https://api.spotify.com/v1";
 
-export const SPOTIFY_SCOPES = ["user-read-recently-played"].join(" ");
+export const SPOTIFY_SCOPES = ["user-top-read"].join(" ");
 
 export type SpotifyTokens = {
   access_token: string;
@@ -9,30 +9,26 @@ export type SpotifyTokens = {
   expires_at: number;
 };
 
-export type SpotifyTrack = {
-  played_at?: string;
-  track: {
+type SpotifyTopTrack = {
+  id: string;
+  name: string;
+  album: {
     id: string;
     name: string;
-    album: {
-      id: string;
-      name: string;
-      artists: Array<{ name: string }>;
-      images: Array<{ url: string; width: number; height: number }>;
-      external_urls: { spotify: string };
-    };
+    album_type?: string;
+    artists: Array<{ name: string }>;
+    images: Array<{ url: string; width: number; height: number }>;
+    external_urls: { spotify: string };
   };
 };
 
 import type { TopAlbum } from "./types";
 import { getRedirectUri as buildRedirectUri } from "./app-url";
 import {
-  getLatestBrowsableMonth,
-  getMonthBoundsMs,
-  getMonthRange,
-  isLatestBrowsable,
-  isPlayedInMonth,
-} from "./month-range";
+  getDefaultTimeRange,
+  getTimeRangeLabel,
+  type TimeRange,
+} from "./time-range";
 
 export type { TopAlbum };
 
@@ -158,93 +154,21 @@ async function spotifyFetch<T>(accessToken: string, path: string): Promise<T> {
   return response.json();
 }
 
-export function getPreviousMonthRange(referenceDate = new Date()) {
-  const { year, month } = getLatestBrowsableMonth(referenceDate);
-  return getMonthRange(year, month);
-}
-
-function parsePlayedAtMs(playedAt: string) {
-  const playedAtMs = Date.parse(playedAt);
-  return Number.isFinite(playedAtMs) ? playedAtMs : null;
-}
-
-async function fetchRecentlyPlayedInRange(
-  accessToken: string,
-  year: number,
-  month: number,
-) {
-  const { startMs, endExclusiveMs } = getMonthBoundsMs(year, month);
-  const tracks: SpotifyTrack[] = [];
-  let cursor = endExclusiveMs;
-  const maxPages = 40;
-
-  for (let page = 0; page < maxPages; page += 1) {
-    const query = new URLSearchParams({
-      limit: "50",
-      before: cursor.toString(),
-    });
-
-    const data = await spotifyFetch<{
-      items: SpotifyTrack[];
-      cursors: { after: string | null; before: string | null } | null;
-    }>(accessToken, `/me/player/recently-played?${query.toString()}`);
-
-    if (!data.items.length) {
-      break;
-    }
-
-    let reachedBeforeRange = false;
-
-    for (const item of data.items) {
-      if (!item.played_at) {
-        continue;
-      }
-
-      const playedAtMs = parsePlayedAtMs(item.played_at);
-      if (playedAtMs === null) {
-        continue;
-      }
-
-      if (playedAtMs >= endExclusiveMs) {
-        continue;
-      }
-
-      if (playedAtMs < startMs) {
-        reachedBeforeRange = true;
-        break;
-      }
-
-      tracks.push(item);
-    }
-
-    if (reachedBeforeRange) {
-      break;
-    }
-
-    const lastPlayedAt = data.items.at(-1)?.played_at;
-    if (!lastPlayedAt) {
-      break;
-    }
-
-    const lastPlayedMs = parsePlayedAtMs(lastPlayedAt);
-    if (lastPlayedMs === null || lastPlayedMs < startMs || lastPlayedMs >= cursor) {
-      break;
-    }
-
-    cursor = lastPlayedMs;
-  }
-
-  return tracks.filter((item) => {
-    if (!item.played_at) {
-      return false;
-    }
-
-    const playedAtMs = parsePlayedAtMs(item.played_at);
-    return playedAtMs !== null && isPlayedInMonth(playedAtMs, year, month);
+async function fetchTopTracks(accessToken: string, timeRange: TimeRange) {
+  const query = new URLSearchParams({
+    limit: "50",
+    time_range: timeRange,
   });
+
+  const data = await spotifyFetch<{ items: SpotifyTopTrack[] }>(
+    accessToken,
+    `/me/top/tracks?${query.toString()}`,
+  );
+
+  return data.items ?? [];
 }
 
-function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAlbum[] {
+function aggregateAlbumsFromTopTracks(tracks: SpotifyTopTrack[]): TopAlbum[] {
   const albumMap = new Map<
     string,
     {
@@ -257,9 +181,14 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
     }
   >();
 
-  for (const { track } of tracks) {
+  for (const track of tracks) {
     const album = track?.album;
     if (!album?.id) {
+      continue;
+    }
+
+    // Prefer full albums / compilations for a vinyl wall; skip singles.
+    if (album.album_type === "single") {
       continue;
     }
 
@@ -274,7 +203,9 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
     albumMap.set(album.id, {
       id: album.id,
       name: album.name ?? "Unknown album",
-      artist: album.artists?.map((artist) => artist.name).join(", ") ?? "Unknown artist",
+      artist:
+        album.artists?.map((artist) => artist.name).join(", ") ??
+        "Unknown artist",
       imageUrl,
       spotifyUrl: album.external_urls?.spotify ?? "",
       playCount: 1,
@@ -286,30 +217,19 @@ function aggregateAlbums(tracks: Array<{ track: SpotifyTrack["track"] }>): TopAl
     .slice(0, 9);
 }
 
-export async function getTopAlbumsForMonth(
+export async function getTopAlbumsForTimeRange(
   accessToken: string,
-  year: number,
-  month: number,
+  timeRange: TimeRange = getDefaultTimeRange(),
 ) {
-  const { label } = getMonthRange(year, month);
-  const recentTracks = await fetchRecentlyPlayedInRange(
-    accessToken,
-    year,
-    month,
-  );
+  const topTracks = await fetchTopTracks(accessToken, timeRange);
 
   return {
-    year,
-    month,
-    monthLabel: label,
-    canGoForward: !isLatestBrowsable(year, month),
-    albums: aggregateAlbums(recentTracks),
+    timeRange,
+    periodLabel: getTimeRangeLabel(timeRange),
+    canGoForward: timeRange !== "short_term",
+    canGoBack: timeRange !== "long_term",
+    albums: aggregateAlbumsFromTopTracks(topTracks),
   };
-}
-
-export async function getTopAlbumsFromPreviousMonth(accessToken: string) {
-  const { year, month } = getLatestBrowsableMonth();
-  return getTopAlbumsForMonth(accessToken, year, month);
 }
 
 export async function getSpotifyProfile(accessToken: string) {

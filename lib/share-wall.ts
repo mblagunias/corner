@@ -47,8 +47,8 @@ export async function captureAsFile(
   return new File([blob], filename, { type: blob.type });
 }
 
-export function shareToTwitter(monthLabel: string) {
-  const text = `My top albums from ${monthLabel} 🎵`;
+export function shareToTwitter(periodLabel: string) {
+  const text = `My top albums · ${periodLabel} 🎵`;
   const url = new URL("https://twitter.com/intent/tweet");
   url.searchParams.set("text", text);
   window.open(url.toString(), "_blank", "noopener,noreferrer");
@@ -72,6 +72,6 @@ export async function shareImageFile(
   return true;
 }
 
-export function slugifyMonthLabel(label: string) {
+export function slugifyPeriodLabel(label: string) {
   return label.toLowerCase().replace(/\s+/g, "-");
 }

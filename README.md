@@ -1,6 +1,6 @@
 # Vinyl Wall
 
-Connect your Spotify account and see your nine most-listened albums from last month displayed in a 3×3 vinyl-on-the-wall grid.
+Connect your Spotify account and see your nine top albums displayed in a 3×3 vinyl-on-the-wall grid — for the last 4 weeks, last 6 months, or all time.
 
 ## Setup
 
@@ -73,12 +73,22 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **C
 
 ## How albums are ranked
 
-The app pulls your Spotify listening history for a **calendar month in UTC** (from `00:00` on the 1st through the last millisecond before the next month) and ranks albums by how many times you played tracks from each album. Only plays with a `played_at` timestamp inside that window are counted — current-month listens are excluded when viewing a past month. Use the **‹ ›** controls to browse previous months.
+The app uses Spotify’s **Top Items** API (`/me/top/tracks`) — a ranked affinity list for three rolling windows:
 
-**Note:** Spotify’s recently-played API only exposes a limited play history. Very old months or heavy listening months may be incomplete.
+| Time range | Label | Approx. window |
+|---|---|---|
+| `short_term` | Last 4 weeks | ~past month |
+| `medium_term` | Last 6 months | ~past half year |
+| `long_term` | All time | ~past year |
+
+Albums are derived by grouping those top tracks by album and ranking by how many top tracks belong to each album (singles are skipped). Spotify does not expose play counts; affinity is Spotify’s own preference score and is typically updated about once a day.
+
+Use the **‹ ›** controls to switch time ranges. Defaults to **Last 4 weeks**.
+
+**Note:** If you previously connected with an older version of Corner, disconnect and connect again so Spotify grants the `user-top-read` scope.
 
 ## Tech stack
 
 - Next.js (App Router)
-- Spotify Web API (OAuth + recently played)
+- Spotify Web API (OAuth + top tracks)
 - Tailwind CSS

@@ -1,18 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getLatestBrowsableMonth, type MonthRef } from "@/lib/month-range";
 import type { TopAlbum } from "@/lib/types";
+import {
+  getDefaultTimeRange,
+  getTimeRangeLabel,
+  type TimeRange,
+} from "@/lib/time-range";
 import { AlbumShelf } from "./AlbumShelf";
 import { ListeningConsole } from "./ListeningConsole";
-import { MonthNavigator } from "./MonthNavigator";
 import { ShareWallActions } from "./ShareWallActions";
+import { TimeRangeNavigator } from "./TimeRangeNavigator";
 
 type AlbumsResponse = {
-  year: number;
-  month: number;
-  monthLabel: string;
+  timeRange: TimeRange;
+  periodLabel: string;
   canGoForward: boolean;
+  canGoBack: boolean;
   albums: TopAlbum[];
 };
 
@@ -22,20 +26,17 @@ function chunkAlbums(albums: TopAlbum[]) {
 
 export function VinylWall() {
   const captureRef = useRef<HTMLDivElement>(null);
-  const [selectedMonth, setSelectedMonth] = useState<MonthRef>(getLatestBrowsableMonth);
+  const [selectedRange, setSelectedRange] = useState<TimeRange>(getDefaultTimeRange);
   const [data, setData] = useState<AlbumsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAlbums = useCallback(async (month: MonthRef, signal: AbortSignal) => {
+  const loadAlbums = useCallback(async (timeRange: TimeRange, signal: AbortSignal) => {
     setLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams({
-        year: month.year.toString(),
-        month: month.month.toString(),
-      });
+      const params = new URLSearchParams({ time_range: timeRange });
       const response = await fetch(`/api/albums?${params.toString()}`, {
         signal,
       });
@@ -72,19 +73,14 @@ export function VinylWall() {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadAlbums(selectedMonth, controller.signal);
+    loadAlbums(selectedRange, controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [loadAlbums, selectedMonth.year, selectedMonth.month]);
+  }, [loadAlbums, selectedRange]);
 
-  function handleMonthChange(next: MonthRef) {
-    setSelectedMonth(next);
-  }
-
-  const monthLabel = data?.monthLabel ?? "";
-  const canGoForward = data?.canGoForward ?? false;
+  const periodLabel = data?.periodLabel ?? getTimeRangeLabel(selectedRange);
   const shelves = chunkAlbums(data?.albums ?? []);
 
   return (
@@ -94,13 +90,11 @@ export function VinylWall() {
         className="share-export wall-scene px-5 py-8 sm:px-10 sm:py-10"
       >
         <header className="mb-8 border-b border-[var(--border)] pb-6">
-          <MonthNavigator
-            year={selectedMonth.year}
-            month={selectedMonth.month}
-            monthLabel={monthLabel || "…"}
-            canGoForward={canGoForward}
+          <TimeRangeNavigator
+            timeRange={selectedRange}
+            periodLabel={loading && !data ? "…" : periodLabel}
             disabled={loading}
-            onChange={handleMonthChange}
+            onChange={setSelectedRange}
           />
         </header>
 
@@ -114,8 +108,8 @@ export function VinylWall() {
           </p>
         ) : !data?.albums.length ? (
           <p className="border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
-            No listening history found for {data?.monthLabel ?? "this month"}.
-            Try another month, or play more albums on Spotify.
+            No top albums found for {periodLabel.toLowerCase()}. Play more
+            albums on Spotify, or try another time range.
           </p>
         ) : (
           <div className="flex flex-col gap-8 sm:gap-10">
@@ -129,7 +123,7 @@ export function VinylWall() {
       </div>
 
       {!loading && !error && data?.albums.length ? (
-        <ShareWallActions monthLabel={data.monthLabel} captureRef={captureRef} />
+        <ShareWallActions periodLabel={data.periodLabel} captureRef={captureRef} />
       ) : null}
     </section>
   );

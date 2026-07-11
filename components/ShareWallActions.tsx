@@ -6,18 +6,18 @@ import {
   captureAsFile,
   shareImageFile,
   shareToTwitter,
-  slugifyMonthLabel,
+  slugifyPeriodLabel,
 } from "@/lib/share-wall";
 
 type ShareWallActionsProps = {
-  monthLabel: string;
+  periodLabel: string;
   captureRef: RefObject<HTMLDivElement | null>;
 };
 
 type ShareStatus = "idle" | "loading" | "success" | "error";
 
 export function ShareWallActions({
-  monthLabel,
+  periodLabel,
   captureRef,
 }: ShareWallActionsProps) {
   const [status, setStatus] = useState<ShareStatus>("idle");
@@ -48,7 +48,7 @@ export function ShareWallActions({
 
   async function handleDownload() {
     await withCapture(async (element) => {
-      const filename = `corner-${slugifyMonthLabel(monthLabel)}.png`;
+      const filename = `corner-${slugifyPeriodLabel(periodLabel)}.png`;
       await captureAndDownload(element, filename);
       setMessage("Image saved.");
     });
@@ -56,12 +56,12 @@ export function ShareWallActions({
 
   async function handleInstagram() {
     await withCapture(async (element) => {
-      const filename = `corner-${slugifyMonthLabel(monthLabel)}.png`;
+      const filename = `corner-${slugifyPeriodLabel(periodLabel)}.png`;
       const file = await captureAsFile(element, filename);
       const shared = await shareImageFile(
         file,
         "My Corner",
-        `My top albums from ${monthLabel}`,
+        `My top albums · ${periodLabel}`,
       );
 
       if (shared) {
@@ -76,17 +76,17 @@ export function ShareWallActions({
 
   async function handleTwitter() {
     await withCapture(async (element) => {
-      const filename = `corner-${slugifyMonthLabel(monthLabel)}.png`;
+      const filename = `corner-${slugifyPeriodLabel(periodLabel)}.png`;
       const file = await captureAsFile(element, filename);
       const shared = await shareImageFile(
         file,
         "My Corner",
-        `My top albums from ${monthLabel}`,
+        `My top albums · ${periodLabel}`,
       );
 
       if (!shared) {
         await captureAndDownload(element, filename);
-        shareToTwitter(monthLabel);
+        shareToTwitter(periodLabel);
         setMessage("Image saved and X opened — attach the image to your post.");
         return;
       }
