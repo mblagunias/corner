@@ -1,6 +1,6 @@
 # Corner — Design
 
-Corner shows your nine top Spotify albums for a chosen time range, arranged like records on three shelves above a small listening console. This document describes the visual and interaction design of the app.
+Corner shows your nine top Spotify albums for the previous month, arranged like records on three shelves above a small listening console. This document describes the visual and interaction design of the app.
 
 ## Design philosophy
 
@@ -53,14 +53,14 @@ Notes:
 ## Layout
 
 - **Container:** a single centered column, `max-w-2xl`, with responsive padding (`px-5 py-10` → `sm:px-8 sm:py-14`).
-- **Page header:** brand "Corner" plus the subtitle "Top albums · last 4 weeks," separated from content by a bottom hairline. When connected, a `Disconnect` control sits at the top-right.
+- **Page header:** brand "Corner" plus the subtitle "Top albums · previous month," separated from content by a bottom hairline. When connected, a `Disconnect` control sits at the top-right.
 - **Primary view:** either the `ConnectSpotify` prompt (logged out) or the `VinylWall` (logged in).
 
 ### The wall scene
 
 The core artifact is the **wall scene** (`.wall-scene`) — a bordered `--surface` card that is also the export target for sharing. Top to bottom:
 
-1. **Time range navigator** — centered "TOP ALBUMS" label and the period name (e.g. "Last 4 weeks") flanked by `‹` / `›` buttons.
+1. **Period header** — centered "TOP ALBUMS" label and the previous month name (e.g. "June").
 2. **Three shelves**, stacked with generous vertical spacing.
 3. **Listening console** — a horizontal surface holding a turntable, plant, and lamp, divided from the shelves by a top hairline.
 
@@ -89,9 +89,9 @@ All console pieces use `--surface-raised` fills with `--border-strong` outlines 
 
 ## Interaction & states
 
-- **Time range navigation:** `‹` / `›` step through All time → Last 6 months → Last 4 weeks. `›` is disabled on Last 4 weeks; `‹` is disabled on All time. Controls are disabled while loading.
+- **Period label:** the wall shows the previous calendar month name (e.g. June when the current month is July), backed by Spotify’s short-term top tracks.
 - **Loading:** a small spinner (`.loading-indicator`) centered in a min-height area; the console still renders to keep the frame stable.
-- **Empty:** a bordered notice when a time range has no album-level top tracks.
+- **Empty:** a bordered notice when the period has no album-level top tracks.
 - **Error:** a muted-red banner surfacing the API message when available.
 - **Auth prompt (`ConnectSpotify`):** heading, one-line explanation, a solid black primary button ("CONNECT SPOTIFY", inverts on hover), and a small contextual hint (local loopback vs. Vercel redirect URI). Inline error copy maps known error codes to friendly messages.
 
@@ -111,7 +111,6 @@ All console pieces use `--surface-raised` fills with `--border-strong` outlines 
 
 - Decorative scene elements (shelves, console pieces, placeholders) are marked `aria-hidden`.
 - Album links carry descriptive `aria-label`s ("Open {album} by {artist} on Spotify").
-- Navigation buttons have `aria-label`s ("Previous time range" / "Next time range") and use disabled states rather than hiding.
 - Color is never the sole signal — states are reinforced by text, borders, and layout.
 
 ## File map
@@ -121,11 +120,11 @@ All console pieces use `--surface-raised` fills with `--border-strong` outlines 
 | Design tokens & component CSS | `app/globals.css` |
 | Fonts, metadata, root shell | `app/layout.tsx` |
 | Page composition & auth branch | `app/page.tsx` |
-| Wall, time-range state, data loading | `components/VinylWall.tsx` |
+| Wall, period label, data loading | `components/VinylWall.tsx` |
 | Shelf grid + placeholders | `components/AlbumShelf.tsx` |
 | Album cover + fallback | `components/AlbumCover.tsx` |
 | Decorative console | `components/ListeningConsole.tsx` |
-| Time range navigator | `components/TimeRangeNavigator.tsx` |
+| Period header | `components/TimeRangeNavigator.tsx` |
 | Share/export actions | `components/ShareWallActions.tsx` |
 | Connect prompt | `components/ConnectSpotify.tsx` |
 | Disconnect control | `components/LogoutButton.tsx` |

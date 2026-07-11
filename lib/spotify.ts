@@ -226,8 +226,8 @@ export async function getTopAlbumsForTimeRange(
   return {
     timeRange,
     periodLabel: getTimeRangeLabel(timeRange),
-    canGoForward: timeRange !== "short_term",
-    canGoBack: timeRange !== "long_term",
+    canGoForward: false,
+    canGoBack: false,
     albums: aggregateAlbumsFromTopTracks(topTracks),
   };
 }
