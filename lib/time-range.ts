@@ -1,48 +1,23 @@
-export const TIME_RANGES = ["short_term", "medium_term", "long_term"] as const;
+export const TIME_RANGES = ["short_term"] as const;
 
 export type TimeRange = (typeof TIME_RANGES)[number];
 
-const TIME_RANGE_LABELS: Record<TimeRange, string> = {
-  short_term: "Last 4 weeks",
-  medium_term: "Last 6 months",
-  long_term: "All time",
-};
-
-/** Ordered from oldest window → most recent (default). */
-const TIME_RANGE_ORDER: TimeRange[] = [
-  "long_term",
-  "medium_term",
-  "short_term",
-];
+/** Spotify short_term ≈ past month; label it as the previous calendar month. */
+export function getPreviousMonthLabel(date = new Date()): string {
+  const previous = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  return previous.toLocaleString("en-US", { month: "long" });
+}
 
 export function getDefaultTimeRange(): TimeRange {
   return "short_term";
 }
 
-export function getTimeRangeLabel(timeRange: TimeRange) {
-  return TIME_RANGE_LABELS[timeRange];
+export function getTimeRangeLabel(_timeRange?: TimeRange) {
+  return getPreviousMonthLabel();
 }
 
 export function isTimeRange(value: string): value is TimeRange {
   return (TIME_RANGES as readonly string[]).includes(value);
-}
-
-export function shiftTimeRange(
-  timeRange: TimeRange,
-  delta: number,
-): TimeRange | null {
-  const index = TIME_RANGE_ORDER.indexOf(timeRange);
-  const nextIndex = index + delta;
-
-  if (nextIndex < 0 || nextIndex >= TIME_RANGE_ORDER.length) {
-    return null;
-  }
-
-  return TIME_RANGE_ORDER[nextIndex];
-}
-
-export function canShiftTimeRange(timeRange: TimeRange, delta: number) {
-  return shiftTimeRange(timeRange, delta) !== null;
 }
 
 export function parseTimeRangeQuery(
@@ -54,7 +29,7 @@ export function parseTimeRangeQuery(
 
   if (!isTimeRange(timeRangeParam)) {
     return {
-      error: "time_range must be short_term, medium_term, or long_term",
+      error: "time_range must be short_term",
     };
   }
 

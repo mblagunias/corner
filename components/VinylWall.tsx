@@ -26,12 +26,12 @@ function chunkAlbums(albums: TopAlbum[]) {
 
 export function VinylWall() {
   const captureRef = useRef<HTMLDivElement>(null);
-  const [selectedRange, setSelectedRange] = useState<TimeRange>(getDefaultTimeRange);
+  const timeRange = getDefaultTimeRange();
   const [data, setData] = useState<AlbumsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAlbums = useCallback(async (timeRange: TimeRange, signal: AbortSignal) => {
+  const loadAlbums = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     setError(null);
 
@@ -69,18 +69,18 @@ export function VinylWall() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     const controller = new AbortController();
-    loadAlbums(selectedRange, controller.signal);
+    loadAlbums(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [loadAlbums, selectedRange]);
+  }, [loadAlbums]);
 
-  const periodLabel = data?.periodLabel ?? getTimeRangeLabel(selectedRange);
+  const periodLabel = data?.periodLabel ?? getTimeRangeLabel(timeRange);
   const shelves = chunkAlbums(data?.albums ?? []);
 
   return (
@@ -91,10 +91,7 @@ export function VinylWall() {
       >
         <header className="mb-8 border-b border-[var(--border)] pb-6">
           <TimeRangeNavigator
-            timeRange={selectedRange}
             periodLabel={loading && !data ? "…" : periodLabel}
-            disabled={loading}
-            onChange={setSelectedRange}
           />
         </header>
 
@@ -108,8 +105,7 @@ export function VinylWall() {
           </p>
         ) : !data?.albums.length ? (
           <p className="border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
-            No top albums found for {periodLabel.toLowerCase()}. Play more
-            albums on Spotify, or try another time range.
+            No top albums found for {periodLabel}. Play more albums on Spotify.
           </p>
         ) : (
           <div className="flex flex-col gap-8 sm:gap-10">

@@ -1,6 +1,6 @@
 # Vinyl Wall
 
-Connect your Spotify account and see your nine top albums displayed in a 3×3 vinyl-on-the-wall grid — for the last 4 weeks, last 6 months, or all time.
+Connect your Spotify account and see your nine top albums displayed in a 3×3 vinyl-on-the-wall grid — for the previous month.
 
 ## Setup
 
@@ -73,17 +73,13 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (not `localhost`), click **C
 
 ## How albums are ranked
 
-The app uses Spotify’s **Top Items** API (`/me/top/tracks`) — a ranked affinity list for three rolling windows:
+The app uses Spotify’s **Top Items** API (`/me/top/tracks`) — a ranked affinity list for the short-term window (~past month), labeled as the previous calendar month (e.g. June when viewing in July).
 
 | Time range | Label | Approx. window |
 |---|---|---|
-| `short_term` | Last 4 weeks | ~past month |
-| `medium_term` | Last 6 months | ~past half year |
-| `long_term` | All time | ~past year |
+| `short_term` | Previous month name | ~past month |
 
 Albums are derived by grouping those top tracks by album and ranking by how many top tracks belong to each album (singles are skipped). Spotify does not expose play counts; affinity is Spotify’s own preference score and is typically updated about once a day.
-
-Use the **‹ ›** controls to switch time ranges. Defaults to **Last 4 weeks**.
 
 **Note:** If you previously connected with an older version of Corner, disconnect and connect again so Spotify grants the `user-top-read` scope.
 
