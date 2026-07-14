@@ -27,10 +27,10 @@ export function AlbumCover({ album }: AlbumCoverProps) {
             No cover
           </div>
         )}
-      </div>
-      <div className="album-cover-meta">
-        <p className="album-cover-title">{album.name}</p>
-        <p className="album-cover-artist">{album.artist}</p>
+        <div className="album-cover-meta">
+          <p className="album-cover-title">{album.name}</p>
+          <p className="album-cover-artist">{album.artist}</p>
+        </div>
       </div>
     </a>
   );

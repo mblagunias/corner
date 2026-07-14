@@ -8,7 +8,6 @@ import {
   type TimeRange,
 } from "@/lib/time-range";
 import { AlbumShelf } from "./AlbumShelf";
-import { ListeningConsole } from "./ListeningConsole";
 import { ShareWallActions } from "./ShareWallActions";
 import { TimeRangeNavigator } from "./TimeRangeNavigator";
 
@@ -114,8 +113,6 @@ export function VinylWall() {
             ))}
           </div>
         )}
-
-        {!loading && !error ? <ListeningConsole /> : null}
       </div>
 
       {!loading && !error && data?.albums.length ? (

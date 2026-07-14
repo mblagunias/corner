@@ -17,14 +17,9 @@ export default async function Home({ searchParams }: HomeProps) {
     <main className="min-h-screen px-5 py-10 sm:px-8 sm:py-14">
       <div className="mx-auto flex w-full max-w-2xl flex-col">
         <header className="mb-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-6">
-          <div>
-            <h1 className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--text)]">
-              Corner
-            </h1>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Top albums · previous month
-            </p>
-          </div>
+          <h1 className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--text)]">
+            Corner
+          </h1>
           {isConnected ? <LogoutButton /> : null}
         </header>
 
